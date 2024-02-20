@@ -1,101 +1,259 @@
 package com.internetbanking.soap.Contrller;
-
-
-
-
-
-import com.internetbanking.soap.Client.SoapClient;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.internetbanking.soap.Client.ValidateRespone;
+import com.internetbanking.soap.SMS.SendSMS;
+import com.internetbanking.soap.SMS.SendSMSResponse;
+import com.internetbanking.soap.SMS.SendSmsRequest;
+import com.internetbanking.soap.SMS.SmsReq;
 import com.internetbanking.soap.Service.InternalTxnSerive.InternalTxnService;
+import com.internetbanking.soap.Service.OtherBankService.OtharBankService;
+import com.internetbanking.soap.Service.SendSMS.SendSMSService;
+import com.internetbanking.soap.model.OtherBankTransfer.OtherBankCreateTxnReq;
+import com.internetbanking.soap.model.OtherBankTransfer.QueryInfoOtherBankReq;
+import com.internetbanking.soap.model.RevertSalReq.IbReversalReq;
+import com.internetbanking.soap.model.StoreTxn.StoreTxnInternalReq;
 import com.internetbanking.soap.model.TransferRes.ApiResponse;
 import com.internetbanking.soap.model.TransferRes.MessageResponse;
-import com.internetbanking.soap.model.TransferRes.TransferReq;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
 
 
 @RestController
 @RequestMapping("${base_url}")
 public class Controller {
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    @Autowired
-    SoapClient soapClient;
 
     @Autowired
     InternalTxnService internalTxnService;
 
-//    @GetMapping(value = "",produces = {MediaType.APPLICATION_JSON_VALUE})
-//    public QUERYACCTRNSIOFSRES Test() {
+     @Autowired
+    ValidateRespone validateRespone;
+
+     @Autowired
+     OtharBankService otharBankService;
+
+    @Autowired
+    SendSMSService sendSMSService;
+
+//    @Autowired
+//    ReverSalService reverSalService;
+
+
+//    @PostMapping(value = "/transfer",produces = {MediaType.APPLICATION_JSON_VALUE})
+//    public ApiResponse transfer(@RequestBody TransferReq transferReq) {
 //
-////        ObjectFactory objectFactory = new ObjectFactory();
-//        QUERYACCTRNSIOFSREQ req = new QUERYACCTRNSIOFSREQ();
-//        FCUBSHEADERType header = new FCUBSHEADERType();
-//        QUERYACCTRNSIOFSREQ.FCUBSBODY body = new QUERYACCTRNSIOFSREQ.FCUBSBODY();
-//        AccTrnsQueryIOType data = new AccTrnsQueryIOType();
+//        ObjectMapper mapper = new ObjectMapper();
+//        ApiResponse apiResponse = new ApiResponse();
+//        MessageResponse obj = new MessageResponse();
 //
-//        QUERYACCTRNSIOFSRES result = new QUERYACCTRNSIOFSRES();
-//
-//        header.setSOURCE("GWDEXSYS");
-//        header.setUBSCOMP(UBSCOMPType.valueOf("FCUBS"));
-//        header.setUSERID("GWSYSTEM01");
-//        header.setBRANCH("000");
-//        header.setSERVICE("FCUBSACService");
-//        header.setOPERATION("QueryCustAcTrn");
-//        header.setSOURCEOPERATION("QueryCustAcTrn");
-//        header.setMSGID("");
-//        header.setCORRELID("");
-//        header.setENTITY("");
-//        header.setMODULEID("");
-//        header.setSOURCEUSERID("");
-//        header.setDESTINATION("");
-//        header.setSOURCEUSERID("");
-//        header.setMULTITRIPID("");
-//        header.setFUNCTIONID("");
-//        header.setACTION("");
-//        header.setSNAPSHOTID("");
-//        header.setPASSWORD("");
+//       String ref = validateRespone.GenerateInterRef("IBIN");
 //
 //
-//        data.setACCNO("0105120006902");
-//        data.setNUMOFTRN(BigDecimal.valueOf(2));
-//        data.setACCBRN("001");
-//        body.setAccDetailsIO(data);
-//        req.setFCUBSHEADER(header);
-//        req.setFCUBSBODY(body);
-////        logger.info(result);
+//        StoreTxnInternalReq storeTxnInternalReq = new StoreTxnInternalReq();
+//        String objTransfer = "";
 //
-//        result = soapClient.getStatment(req);
+//        try {
+//            objTransfer= mapper.writeValueAsString(transferReq);
+//        } catch (JsonProcessingException e) {
+//            throw new RuntimeException(e);
+//        }
 //
-//        logger.info(String.valueOf(result));
-//        return result;
+//        storeTxnInternalReq.setRef(transferReq.getRef());
+//        storeTxnInternalReq.setReqObj(objTransfer);
+//        storeTxnInternalReq.setAmount(String.valueOf(transferReq.getToAmount()));
+//        storeTxnInternalReq.setToAccNo(transferReq.getToAccNo());
+//        storeTxnInternalReq.setFromAccNo(transferReq.getFromAccNo());
+//        storeTxnInternalReq.setFee(transferReq.getFee());
 //
+//        /* ---- store txn obj ----------*/
+//
+//        internalTxnService.StoreTxn(storeTxnInternalReq , ref);
+//
+//        try {
+//
+//            apiResponse = internalTxnService.internalTransfer(transferReq , ref) ;
+//
+//        }catch (Exception e){
+//            e.printStackTrace();
+//            apiResponse.setCode("01");
+//            apiResponse.setMessage("transfer error ");
+//            apiResponse.setTxnId(transferReq.getRef());
+//            apiResponse.setMessageType("Transfer");
+//            apiResponse.setDataRes(obj);
+//            return apiResponse;
+//        }
+//
+//        return apiResponse;
 //    }
 
-    @PostMapping(value = "/transfer",produces = {MediaType.APPLICATION_JSON_VALUE})
-    public ApiResponse transfer(@RequestBody TransferReq transferReq) {
+    @PostMapping(value = "/getinfoOtherbank",produces = {MediaType.APPLICATION_JSON_VALUE})
+    public ApiResponse getinfoOtherbank(@RequestBody QueryInfoOtherBankReq queryInfoOtherBankReq) {
 
+        logger.info(queryInfoOtherBankReq.toString());
+
+        ObjectMapper mapper = new ObjectMapper();
         ApiResponse apiResponse = new ApiResponse();
         MessageResponse obj = new MessageResponse();
 
+        String ref = validateRespone.GenerateInterRef("OTHERINFO");
+
+        StoreTxnInternalReq storeTxnInternalReq = new StoreTxnInternalReq();
+        String objTransfer = "";
+
+        try {
+            objTransfer= mapper.writeValueAsString(queryInfoOtherBankReq);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
+        storeTxnInternalReq.setRef(queryInfoOtherBankReq.getFromuser());
+        storeTxnInternalReq.setReqObj(objTransfer);
+        storeTxnInternalReq.setAmount("");
+        storeTxnInternalReq.setToAccNo(queryInfoOtherBankReq.getToaccount());
+        storeTxnInternalReq.setFromAccNo("");
+        storeTxnInternalReq.setFee("");
+
+        /* ---- store txn obj ----------*/
+
+       // internalTxnService.StoreTxn(storeTxnInternalReq , ref);
 
         try {
 
-            apiResponse = internalTxnService.internalTransfer(transferReq);
+            apiResponse = otharBankService.otherBankGetInfo(queryInfoOtherBankReq , ref) ;
+
 
         }catch (Exception e){
             e.printStackTrace();
             apiResponse.setCode("01");
             apiResponse.setMessage("transfer error ");
-            apiResponse.setTxnId(transferReq.getRef());
+            //apiResponse.setTxnId(transferReq.getRef());
             apiResponse.setMessageType("Transfer");
             apiResponse.setDataRes(obj);
             return apiResponse;
         }
+
         return apiResponse;
     }
 
+
+    @PostMapping(value = "/otherbankTransfer",produces = {MediaType.APPLICATION_JSON_VALUE})
+    public ApiResponse OtherbankTransfer(@RequestBody OtherBankCreateTxnReq otherBankCreateTxnReq) {
+
+        logger.info(otherBankCreateTxnReq.toString());
+
+        ObjectMapper mapper = new ObjectMapper();
+        ApiResponse apiResponse = new ApiResponse();
+        MessageResponse obj = new MessageResponse();
+
+        String ref = validateRespone.GenerateInterRef("OTHERTXN");
+
+        StoreTxnInternalReq storeTxnInternalReq = new StoreTxnInternalReq();
+        String objTransfer = "";
+
+        try {
+            objTransfer= mapper.writeValueAsString(otherBankCreateTxnReq);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
+        storeTxnInternalReq.setRef(otherBankCreateTxnReq.getFromuser());
+        storeTxnInternalReq.setReqObj(objTransfer);
+        storeTxnInternalReq.setAmount(otherBankCreateTxnReq.getAmount());
+        storeTxnInternalReq.setToAccNo(otherBankCreateTxnReq.getToaccount());
+        storeTxnInternalReq.setFromAccNo(otherBankCreateTxnReq.getFromaccount());
+        storeTxnInternalReq.setFee(otherBankCreateTxnReq.getFee());
+
+        /* ---- store txn obj ----------*/
+
+        // internalTxnService.StoreTxn(storeTxnInternalReq , ref);
+
+        try {
+
+            apiResponse = otharBankService.otherBankTransfer(otherBankCreateTxnReq , ref) ;
+
+
+        }catch (Exception e){
+            e.printStackTrace();
+            apiResponse.setCode("01");
+            apiResponse.setMessage("transfer error ");
+            //apiResponse.setTxnId(transferReq.getRef());
+            apiResponse.setMessageType("Transfer");
+            apiResponse.setDataRes(obj);
+            return apiResponse;
+        }
+
+        return apiResponse;
+    }
+
+
+    @PostMapping(value = "/RevertCoreBanking",produces = {MediaType.APPLICATION_JSON_VALUE})
+    public ApiResponse RevertCoreBanking(@RequestBody IbReversalReq req) {
+
+        logger.info(String.valueOf(req));
+
+        ObjectMapper mapper = new ObjectMapper();
+        ApiResponse apiResponse = new ApiResponse();
+        MessageResponse obj = new MessageResponse();
+
+        String ref = validateRespone.GenerateInterRef("REVERT");
+
+        StoreTxnInternalReq storeTxnInternalReq = new StoreTxnInternalReq();
+        String objTransfer = "";
+
+        try {
+            objTransfer= mapper.writeValueAsString(req);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
+//        storeTxnInternalReq.setRef(otherBankCreateTxnReq.getFromuser());
+//        storeTxnInternalReq.setReqObj(objTransfer);
+//        storeTxnInternalReq.setAmount(otherBankCreateTxnReq.getAmount());
+//        storeTxnInternalReq.setToAccNo(otherBankCreateTxnReq.getToaccount());
+//        storeTxnInternalReq.setFromAccNo(otherBankCreateTxnReq.getFromaccount());
+//        storeTxnInternalReq.setFee(otherBankCreateTxnReq.getFee());
+
+        /* ---- store txn obj ----------*/
+
+        // internalTxnService.StoreTxn(storeTxnInternalReq , ref);
+
+        try {
+
+            apiResponse = internalTxnService.reversal(req , ref) ;
+
+        }catch (Exception e){
+            e.printStackTrace();
+            apiResponse.setCode("01");
+            apiResponse.setMessage("transfer error ");
+            //apiResponse.setTxnId(transferReq.getRef());
+            apiResponse.setMessageType("Transfer");
+            apiResponse.setDataRes(obj);
+            return apiResponse;
+        }
+
+        return apiResponse;
+    }
+
+    @PostMapping(value = "/SendSMS" )
+    public ApiResponse SendSMS(@RequestBody SmsReq smsReq) {
+        ApiResponse response = new ApiResponse();
+        SendSmsRequest sendSmsRequest = new SendSmsRequest();
+
+        try {
+
+            response =  sendSMSService.sendSMS(smsReq);
+        }catch (Exception e){
+            e.printStackTrace();
+            response.setCode("01");
+            response.setMessage("send sms fail");
+            return response;
+        }
+
+        return  response ;
+    }
 }

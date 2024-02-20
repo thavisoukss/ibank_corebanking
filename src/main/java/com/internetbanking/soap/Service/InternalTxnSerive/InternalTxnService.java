@@ -2,6 +2,11 @@ package com.internetbanking.soap.Service.InternalTxnSerive;
 
 import com.internetbanking.soap.Client.SoapClient;
 import com.internetbanking.soap.Client.ValidateRespone;
+import com.internetbanking.soap.Dao.ImpStoreTxnDao;
+import com.internetbanking.soap.model.RevertSalReq.IbReversalReq;
+import com.internetbanking.soap.model.RevertSalReq.RevertRes;
+import com.internetbanking.soap.model.StoreTxn.StoreTxnInternalReq;
+import com.internetbanking.soap.model.StoreTxn.UpdateTxnInternalRes;
 import com.internetbanking.soap.model.TransferRes.ApiResponse;
 import com.internetbanking.soap.model.TransferRes.MessageResponse;
 import com.internetbanking.soap.model.TransferRes.TransferReq;
@@ -9,12 +14,17 @@ import com.internetbanking.soap.model.TransferRes.TransferRes;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.internetbanking.soap.transfer.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 @Service
 public class InternalTxnService {
+
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Autowired
     SoapClient soapClient;
@@ -24,6 +34,8 @@ public class InternalTxnService {
 
     @Autowired
     private ObjectMapper objectMapper;
+    @Autowired
+    ImpStoreTxnDao impStoreTxnDao;
 
 
     @Value("${transfer.source}")
@@ -41,15 +53,33 @@ public class InternalTxnService {
     @Value("${transfer.sourceoperation}")
     private String TRAN_SOURCEOPERATION;
 
+    @Value("${revert.source}")
+    private String REV_SOURCE;
+    @Value("${revert.ubscomp}")
+    private String REV_UBSCOMP;
+    @Value("${revert.userid}")
+    private String REV_USERID;
+    @Value("${revert.branch}")
+    private String REV_BRANCH;
+    @Value("${revert.service}")
+    private String REV_SERVICE;
+    @Value("${revert.operation}")
+    private String REV_OPERATION;
+    @Value("${revert.sourceoperation}")
+    private String REV_SOURCEOPERATION;
 
 
-    public ApiResponse internalTransfer(TransferReq transferReq){
 
+    public ApiResponse internalTransfer(TransferReq transferReq , String ref){
+
+        ObjectMapper mapper = new ObjectMapper();
         ApiResponse apiResponse = new ApiResponse();
         MessageResponse obj = new MessageResponse();
         CREATECONTRACTFSFSRES result = new CREATECONTRACTFSFSRES();
 
         CREATECONTRACTFSFSREQ createTxn = new CREATECONTRACTFSFSREQ();
+
+        UpdateTxnInternalRes updateTxnInternalRes = new UpdateTxnInternalRes();
 
 
         try {
@@ -78,6 +108,19 @@ public class InternalTxnService {
             String json = objectMapper.writeValueAsString(result);
             TransferRes transferRes = objectMapper.readValue(json, TransferRes.class);
             apiResponse  = validateRespone.convertTransferRes(transferRes,transferReq.getRef());
+
+            /* ----- Store update transaction -------*/
+
+            updateTxnInternalRes.setObjRes(transferReq.getRef());
+            String objRes = mapper.writeValueAsString(result);
+            String ftObj = mapper.writeValueAsString(apiResponse);
+            updateTxnInternalRes.setRef(transferReq.getRef());
+            updateTxnInternalRes.setObjRes(objRes);
+            updateTxnInternalRes.setCoreBankingRef(ftObj);
+
+            UpdateTxn(updateTxnInternalRes , ref);
+
+
 
         } catch (JsonProcessingException e) {
             e.printStackTrace();
@@ -125,6 +168,100 @@ public class InternalTxnService {
         req.setFCUBSBODY(body);
 
         return req;
+    }
+
+
+
+    public ApiResponse reversal (IbReversalReq obj , String ref){
+
+        REVERSECONTRACTFSFSREQ revertObj = new REVERSECONTRACTFSFSREQ();
+        REVERSECONTRACTFSFSRES resObj = new REVERSECONTRACTFSFSRES();
+
+        ApiResponse result = new ApiResponse();
+
+        try {
+
+            logger.info("*************** convert obj Json to XML *************");
+
+            revertObj = setReversalObj(obj);
+
+            logger.info("*************** call  Soap Webservice  revert  *************");
+
+            resObj = soapClient.revert(revertObj);
+
+            logger.info("*************** convert obj XML to JsonSting *************");
+
+            String json = objectMapper.writeValueAsString(resObj);
+            logger.info(json);
+
+
+            RevertRes revertRes = objectMapper.readValue(json, RevertRes.class);
+            result  = validateRespone.convertReversl(revertRes,obj.getRef());
+
+            return result;
+
+
+        }catch (Exception e){
+            e.printStackTrace();
+
+            result.setCode("01");
+            result.setMessage("convert json eror ");
+            result.setTxnId(obj.getRef());
+            result.setMessageType("Transfer");
+            result.setDataRes(obj);
+            return result;
+        }
+
+
+    }
+
+    public REVERSECONTRACTFSFSREQ setReversalObj (IbReversalReq obj){
+
+        REVERSECONTRACTFSFSREQ  res = new REVERSECONTRACTFSFSREQ();
+        FCUBSHEADERType fcubsheaderType = new FCUBSHEADERType();
+        REVERSECONTRACTFSFSREQ.FCUBSBODY fcubsbody = new REVERSECONTRACTFSFSREQ.FCUBSBODY();
+
+        ContractFullType body = new ContractFullType();
+
+        fcubsheaderType.setSOURCE(REV_SOURCE);
+        fcubsheaderType.setUBSCOMP(UBSCOMPType.valueOf(REV_UBSCOMP));
+        fcubsheaderType.setUSERID(REV_USERID);
+        fcubsheaderType.setBRANCH(REV_BRANCH);
+        fcubsheaderType.setSERVICE(REV_SERVICE);
+        fcubsheaderType.setOPERATION(REV_OPERATION);
+        fcubsheaderType.setSOURCEOPERATION(REV_SOURCEOPERATION);
+
+        res.setFCUBSHEADER(fcubsheaderType);
+        body.setCONTREFNO(obj.getFt());
+        fcubsbody.setContractDetailsFull(body);
+
+        res.setFCUBSHEADER(fcubsheaderType);
+        res.setFCUBSBODY(fcubsbody);
+
+        return  res;
+
+
+    }
+
+    @Async
+    public void  UpdateTxn (UpdateTxnInternalRes  data ,  String ref){
+
+        try {
+            impStoreTxnDao.UpdateTxnRes(data ,ref);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+
+    }
+    @Async
+    public void  StoreTxn (StoreTxnInternalReq  data , String ref) {
+
+        try {
+            impStoreTxnDao.StoreTxnReq(data , ref);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+
     }
 
 

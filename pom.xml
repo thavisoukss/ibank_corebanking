@@ -25,6 +25,10 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web-services</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-jdbc</artifactId>
+		</dependency>
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -37,10 +41,27 @@
 			<version>2.2.11</version>
 		</dependency>
 		<dependency>
+			<groupId>org.apache.httpcomponents</groupId>
+			<artifactId>httpclient</artifactId>
+		</dependency>
+		<dependency>
 			<groupId>net.minidev</groupId>
 			<artifactId>json-smart</artifactId>
 			<version>2.5.0</version>
 		</dependency>
+
+		<dependency>
+			<groupId>com.oracle.database.jdbc</groupId>
+			<artifactId>ojdbc8</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+
+
+	<dependency>
+		<groupId>com.google.code.gson</groupId>
+		<artifactId>gson</artifactId>
+		<version>2.8.9</version>
+	</dependency>
 
 		<dependency>
 			<groupId>org.projectlombok</groupId>
@@ -59,13 +80,23 @@
 			<artifactId>jackson-databind</artifactId>
 			<version>2.15.3</version>
 		</dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents.client5</groupId>
+            <artifactId>httpclient5</artifactId>
+            <version>5.2.3</version>
+        </dependency>
 		<dependency>
-			<groupId>org.springframework</groupId>
-			<artifactId>spring-jdbc</artifactId>
-			<version>5.3.24</version>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-openfeign-core</artifactId>
+			<version>3.1.5</version>
 		</dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>4.5.13</version>
+        </dependency>
 
-	</dependencies>
+    </dependencies>
 
 	<build>
 		<plugins>
@@ -78,28 +109,32 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
-<!--			<plugin>-->
-<!--				<groupId>com.sun.xml.ws</groupId>-->
-<!--				<artifactId>jaxws-maven-plugin</artifactId>-->
-<!--				<version>3.0.0</version>-->
-<!--				<executions>-->
-<!--					<execution>-->
-<!--						<goals>-->
-<!--							<goal>wsimport</goal>-->
-<!--						</goals>-->
-<!--					</execution>-->
-<!--				</executions>-->
-<!--				<configuration>-->
-<!--					&lt;!&ndash; The name of your generated source package &ndash;&gt;-->
-<!--					<wsdlFiles>${project.basedir}/src/main/resources/transaction.wsdl</wsdlFiles>-->
-<!--					<packageName>com.internetbanking.soap.transfer</packageName>-->
-<!--					&lt;!&ndash;suppress UnresolvedMavenProperty &ndash;&gt;-->
-<!--&lt;!&ndash;					<sourceDestDir>${sourcesDir}</sourceDestDir>&ndash;&gt;-->
-<!--					&lt;!&ndash;suppress UnresolvedMavenProperty &ndash;&gt;-->
-<!--&lt;!&ndash;					<destDir>${classesDir}</destDir>&ndash;&gt;-->
-<!--					<extension>true</extension>-->
-<!--				</configuration>-->
-<!--			</plugin>-->
+			<plugin>
+				<groupId>com.sun.xml.ws</groupId>
+				<artifactId>jaxws-maven-plugin</artifactId>
+				<version>3.0.0</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>wsimport</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<!-- The name of your generated source package -->
+<!--					<wsdlFiles>${project.basedir}/src/main/resources/sendSMSService.wsdl</wsdlFiles>-->
+<!--					<packageName>com.internetbanking.soap.SMS</packageName>-->
+<!--					<xjcArgs>-->
+<!--						<xjcArg>-XautoNameResolution</xjcArg>-->
+<!--					</xjcArgs>-->
+
+					<!--suppress UnresolvedMavenProperty -->
+<!--					<sourceDestDir>${sourcesDir}</sourceDestDir>-->
+					<!--suppress UnresolvedMavenProperty -->
+<!--					<destDir>${classesDir}</destDir>-->
+					<extension>true</extension>
+				</configuration>
+			</plugin>
 
 		</plugins>
 
